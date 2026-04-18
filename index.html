@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LexAI — Inteligentní správa smluv pro českou firmu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:   #0d1b2a;
+  --navy2:  #152435;
+  --navy3:  #1e3248;
+  --gold:   #c9a84c;
+  --gold2:  #e8c96a;
+  --gold3:  #f5e0a0;
+  --cream:  #f8f4ed;
+  --white:  #ffffff;
+  --muted:  #8a96a3;
+  --border: rgba(201,168,76,.18);
+  --r:      10px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--navy);
+  color: var(--white);
+  overflow-x: hidden;
+}
+
+/* ── Grain overlay ──────────────────────────────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: .5;
+}
+
+/* ── Typography ─────────────────────────────────────────────────────────────── */
+h1,h2,h3 { font-family: 'Cormorant Garamond', serif; font-weight: 600; line-height: 1.15; }
+h1 { font-size: clamp(2.8rem, 6vw, 5rem); }
+h2 { font-size: clamp(2rem, 4vw, 3.2rem); }
+h3 { font-size: 1.4rem; }
+p  { line-height: 1.75; color: #b8c4ce; font-weight: 300; }
+
+/* ── Utilities ──────────────────────────────────────────────────────────────── */
+.gold    { color: var(--gold); }
+.gold2   { color: var(--gold2); }
+.container { max-width: 1140px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+.tag { display: inline-block; padding: 4px 14px; border: 1px solid var(--border); border-radius: 20px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); margin-bottom: 18px; }
+
+/* ── Nav ────────────────────────────────────────────────────────────────────── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(13,27,42,.92); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  height: 64px; display: flex; align-items: center;
+}
+nav .inner { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.logo { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 700; color: var(--white); letter-spacing: .04em; }
+.logo span { color: var(--gold); }
+.nav-links { display: flex; align-items: center; gap: 28px; }
+.nav-links a { font-size: 14px; color: var(--muted); text-decoration: none; transition: color .2s; }
+.nav-links a:hover { color: var(--white); }
+.btn-nav { background: var(--gold); color: var(--navy); padding: 8px 22px; border-radius: 6px; font-weight: 600; font-size: 14px; text-decoration: none; transition: background .2s; }
+.btn-nav:hover { background: var(--gold2); color: var(--navy); }
+
+/* ── Hero ───────────────────────────────────────────────────────────────────── */
+#hero {
+  min-height: 100vh; display: flex; align-items: center;
+  padding: 120px 0 80px;
+  position: relative;
+  overflow: hidden;
+}
+.hero-glow {
+  position: absolute; top: -200px; right: -200px;
+  width: 700px; height: 700px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(201,168,76,.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-glow2 {
+  position: absolute; bottom: -300px; left: -200px;
+  width: 600px; height: 600px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(30,50,72,.6) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+.hero-eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+.hero-eyebrow span { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--gold); }
+.hero-eyebrow::before { content:''; display:block; width: 28px; height: 1px; background: var(--gold); }
+.hero h1 { margin-bottom: 24px; }
+.hero p { font-size: 1.05rem; margin-bottom: 36px; max-width: 480px; }
+.hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+.btn-primary {
+  background: var(--gold); color: var(--navy); padding: 14px 30px;
+  border-radius: var(--r); font-weight: 600; font-size: 15px; text-decoration: none;
+  transition: all .2s; border: none; cursor: pointer;
+  display: inline-block;
+}
+.btn-primary:hover { background: var(--gold2); transform: translateY(-1px); }
+.btn-outline {
+  border: 1px solid var(--border); color: var(--white); padding: 14px 30px;
+  border-radius: var(--r); font-size: 15px; text-decoration: none;
+  transition: all .2s; display: inline-block;
+}
+.btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+
+.hero-card {
+  background: var(--navy2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 28px; position: relative; overflow: hidden;
+}
+.hero-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+.search-demo { margin-bottom: 20px; }
+.search-demo label { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--gold); margin-bottom: 8px; display: block; }
+.search-box { background: var(--navy3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; font-size: 14px; color: var(--muted); font-family: 'Outfit', sans-serif; }
+.search-results { display: flex; flex-direction: column; gap: 10px; }
+.result-item { background: var(--navy3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.result-item-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+.result-item-name { font-size: 13px; font-weight: 500; color: var(--white); }
+.score-badge { font-size: 11px; background: rgba(201,168,76,.15); color: var(--gold); padding: 2px 8px; border-radius: 10px; }
+.result-meta { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+.result-snippet { font-size: 12px; color: #8a96a3; line-height: 1.5; }
+.result-snippet em { color: var(--gold2); font-style: normal; }
+.typing-cursor { display: inline-block; width: 2px; height: 14px; background: var(--gold); animation: blink 1s infinite; vertical-align: middle; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ── Stats ──────────────────────────────────────────────────────────────────── */
+#stats {
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  padding: 40px 0;
+  background: rgba(255,255,255,.02);
+}
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
+.stat-item { text-align: center; padding: 20px; border-right: 1px solid var(--border); }
+.stat-item:last-child { border-right: none; }
+.stat-num { font-family: 'Cormorant Garamond', serif; font-size: 2.8rem; font-weight: 700; color: var(--gold); line-height: 1; }
+.stat-label { font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+/* ── Features ───────────────────────────────────────────────────────────────── */
+section { padding: 100px 0; }
+.section-header { text-align: center; margin-bottom: 64px; }
+.section-header p { max-width: 560px; margin: 16px auto 0; font-size: 1.05rem; }
+
+.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.feature-card {
+  background: var(--navy2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 28px; transition: all .25s;
+  position: relative; overflow: hidden;
+}
+.feature-card:hover { border-color: rgba(201,168,76,.4); transform: translateY(-3px); }
+.feature-card::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 60px;
+  background: linear-gradient(to top, rgba(201,168,76,.04), transparent);
+  opacity: 0; transition: opacity .25s;
+}
+.feature-card:hover::after { opacity: 1; }
+.feat-icon {
+  width: 44px; height: 44px; background: rgba(201,168,76,.1);
+  border: 1px solid var(--border); border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 18px; font-size: 20px;
+}
+.feature-card h3 { color: var(--white); margin-bottom: 10px; font-family: 'Outfit', sans-serif; font-weight: 500; font-size: 1rem; }
+.feature-card p { font-size: 14px; }
+
+/* ── How it works ───────────────────────────────────────────────────────────── */
+#how { background: rgba(255,255,255,.015); }
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; position: relative; }
+.steps::before {
+  content: ''; position: absolute; top: 32px; left: 12.5%; right: 12.5%; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), var(--gold), var(--border), transparent);
+}
+.step { text-align: center; padding: 0 20px; }
+.step-num {
+  width: 64px; height: 64px; margin: 0 auto 20px;
+  background: var(--navy2); border: 1px solid var(--border);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 700; color: var(--gold);
+  position: relative; z-index: 1;
+}
+.step h3 { font-family: 'Outfit', sans-serif; font-weight: 500; font-size: 0.95rem; color: var(--white); margin-bottom: 10px; }
+.step p { font-size: 13px; }
+
+/* ── Search demo section ────────────────────────────────────────────────────── */
+.query-examples { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.query-ex {
+  background: var(--navy2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 18px; cursor: pointer; transition: all .2s;
+}
+.query-ex:hover { border-color: rgba(201,168,76,.4); background: var(--navy3); }
+.query-ex .q-text { font-size: 13px; color: var(--cream); margin-bottom: 6px; font-style: italic; }
+.query-ex .q-type { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--gold); }
+
+/* ── Pricing ────────────────────────────────────────────────────────────────── */
+#pricing { background: var(--navy); }
+.pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; }
+.pricing-card {
+  background: var(--navy2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 32px; position: relative; overflow: hidden;
+}
+.pricing-card.featured {
+  border-color: var(--gold);
+  background: linear-gradient(160deg, var(--navy3) 0%, var(--navy2) 100%);
+}
+.pricing-card.featured::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+.popular-badge {
+  position: absolute; top: 18px; right: 18px;
+  background: var(--gold); color: var(--navy);
+  font-size: 11px; font-weight: 700; padding: 3px 12px; border-radius: 20px;
+  letter-spacing: .05em; text-transform: uppercase;
+}
+.plan-name { font-size: 14px; text-transform: uppercase; letter-spacing: .12em; color: var(--gold); margin-bottom: 12px; }
+.plan-price { display: flex; align-items: baseline; gap: 6px; margin-bottom: 6px; }
+.plan-price .amount { font-family: 'Cormorant Garamond', serif; font-size: 3rem; font-weight: 700; color: var(--white); }
+.plan-price .currency { font-size: 1.1rem; color: var(--muted); align-self: flex-start; margin-top: 12px; }
+.plan-price .period { font-size: 13px; color: var(--muted); }
+.plan-desc { font-size: 13px; color: var(--muted); margin-bottom: 28px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+.plan-features { list-style: none; display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px; }
+.plan-features li { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: #b8c4ce; }
+.plan-features li::before { content: '✓'; color: var(--gold); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+.plan-features li.no { color: #4a5568; }
+.plan-features li.no::before { content: '–'; color: #4a5568; }
+.btn-plan {
+  display: block; text-align: center; padding: 13px;
+  border-radius: var(--r); font-size: 15px; font-weight: 600;
+  text-decoration: none; transition: all .2s;
+  border: 1px solid var(--border); color: var(--white);
+}
+.btn-plan:hover { border-color: var(--gold); color: var(--gold); }
+.btn-plan.featured { background: var(--gold); color: var(--navy); border-color: var(--gold); }
+.btn-plan.featured:hover { background: var(--gold2); }
+
+.pricing-note { text-align: center; margin-top: 32px; font-size: 13px; color: var(--muted); }
+.pricing-note a { color: var(--gold); text-decoration: none; }
+
+/* ── Competitor comparison ──────────────────────────────────────────────────── */
+#compare { background: rgba(255,255,255,.015); }
+.compare-table { width: 100%; border-collapse: collapse; }
+.compare-table th {
+  padding: 14px 20px; text-align: left; font-size: 13px; font-weight: 500;
+  color: var(--muted); border-bottom: 1px solid var(--border);
+  text-transform: uppercase; letter-spacing: .07em;
+}
+.compare-table th:first-child { width: 200px; }
+.compare-table th.ours { color: var(--gold); }
+.compare-table td {
+  padding: 14px 20px; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,.04);
+  color: #b8c4ce; vertical-align: middle;
+}
+.compare-table td.ours { color: var(--white); background: rgba(201,168,76,.04); }
+.compare-table tr:last-child td { border-bottom: none; }
+.compare-table td:first-child { font-weight: 500; color: var(--white); }
+.check { color: var(--gold); font-size: 16px; }
+.cross { color: #4a5568; }
+.price-tag { font-weight: 600; }
+
+/* ── Cost breakdown ─────────────────────────────────────────────────────────── */
+.cost-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.cost-card { background: var(--navy2); border: 1px solid var(--border); border-radius: 16px; padding: 28px; }
+.cost-card h3 { font-family: 'Outfit', sans-serif; font-weight: 500; margin-bottom: 20px; color: var(--gold); font-size: 0.95rem; text-transform: uppercase; letter-spacing: .08em; }
+.cost-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.05); font-size: 14px; }
+.cost-row:last-child { border-bottom: none; font-weight: 600; color: var(--white); }
+.cost-row .label { color: #b8c4ce; }
+.cost-row .value { color: var(--white); }
+.cost-row.total .value { color: var(--gold); font-size: 1.1rem; }
+.margin-badge { display: inline-block; background: rgba(22,163,74,.15); color: #4ade80; border: 1px solid rgba(74,222,128,.2); border-radius: 6px; padding: 3px 12px; font-size: 12px; font-weight: 600; margin-top: 12px; }
+
+/* ── Roadmap ────────────────────────────────────────────────────────────────── */
+.roadmap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.roadmap-card { background: var(--navy2); border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
+.roadmap-phase { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--gold); margin-bottom: 8px; }
+.roadmap-timeline { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+.roadmap-items { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.roadmap-items li { font-size: 13px; color: #b8c4ce; padding-left: 16px; position: relative; }
+.roadmap-items li::before { content: '→'; position: absolute; left: 0; color: var(--gold); font-size: 11px; top: 1px; }
+
+/* ── FAQ ────────────────────────────────────────────────────────────────────── */
+.faq-list { max-width: 760px; margin: 0 auto; }
+.faq-item { border-bottom: 1px solid var(--border); }
+.faq-question {
+  width: 100%; background: none; border: none; text-align: left; padding: 22px 0;
+  font-size: 15px; font-weight: 500; color: var(--white); cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center; font-family: 'Outfit', sans-serif;
+}
+.faq-question span { color: var(--gold); font-size: 1.3rem; transition: transform .2s; }
+.faq-answer { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+.faq-answer p { font-size: 14px; padding-bottom: 20px; }
+.faq-item.open .faq-answer { max-height: 200px; }
+.faq-item.open .faq-question span { transform: rotate(45deg); }
+
+/* ── CTA ────────────────────────────────────────────────────────────────────── */
+#cta {
+  background: linear-gradient(135deg, var(--navy3) 0%, var(--navy2) 100%);
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  padding: 100px 0; text-align: center;
+}
+#cta h2 { margin-bottom: 16px; }
+#cta p { max-width: 520px; margin: 0 auto 36px; font-size: 1.05rem; }
+.cta-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+/* ── Footer ─────────────────────────────────────────────────────────────────── */
+footer {
+  padding: 48px 0; border-top: 1px solid var(--border);
+  display: flex; align-items: center;
+}
+.footer-inner { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.footer-logo { font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 700; }
+.footer-logo span { color: var(--gold); }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; transition: color .2s; }
+.footer-links a:hover { color: var(--white); }
+.footer-copy { font-size: 12px; color: #4a5568; }
+
+/* ── Animations ─────────────────────────────────────────────────────────────── */
+.fade-up { opacity: 0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease; }
+.fade-up.visible { opacity: 1; transform: translateY(0); }
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .hero-grid, .cost-grid { grid-template-columns: 1fr; }
+  .features-grid, .roadmap-grid { grid-template-columns: 1fr 1fr; }
+  .pricing-grid { grid-template-columns: 1fr; max-width: 460px; margin: 0 auto; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .stat-item:nth-child(2) { border-right: none; }
+  .steps { grid-template-columns: 1fr 1fr; }
+  .steps::before { display: none; }
+  .query-examples { grid-template-columns: 1fr; }
+  .compare-table { font-size: 12px; }
+  .nav-links { display: none; }
+}
+@media (max-width: 560px) {
+  .features-grid, .roadmap-grid, .stats-grid { grid-template-columns: 1fr; }
+  .stat-item { border-right: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Navigation ───────────────────────────────────────────────────────────── -->
+<nav>
+  <div class="container">
+    <div class="inner">
+      <div class="logo">Lex<span>AI</span></div>
+      <div class="nav-links">
+        <a href="#features">Funkce</a>
+        <a href="#how">Jak to funguje</a>
+        <a href="#pricing">Ceník</a>
+        <a href="#compare">Porovnání</a>
+        <a href="#faq">FAQ</a>
+        <a href="/trial" class="btn-nav">Vyzkoušet zdarma</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Hero ─────────────────────────────────────────────────────────────────── -->
+<section id="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-glow2"></div>
+  <div class="container">
+    <div class="hero-grid">
+      <div>
+        <div class="hero-eyebrow"><span>AI právní asistent</span></div>
+        <h1>Vaše smlouvy.<br>Pod <span class="gold">plnou kontrolou.</span></h1>
+        <p>LexAI indexuje, analyzuje a vyhledává v celém portfoliu vašich smluv. Ptejte se přirozenou češtinou — asistent najde přesné znění, vyloží klauzuli a upozorní na rizika.</p>
+        <div class="hero-actions">
+          <a href="/trial" class="btn-primary">Spustit 14 dní zdarma</a>
+          <a href="#how" class="btn-outline">Jak to funguje →</a>
+        </div>
+        <p style="margin-top:20px; font-size:13px; color:#4a5568;">Bez kreditní karty · Data zůstávají ve vašem Azure · Podpora češtiny</p>
+      </div>
+      <div>
+        <div class="hero-card">
+          <div class="search-demo">
+            <label>Dotaz na smlouvy</label>
+            <div class="search-box" id="typed-query">Ve kterých smlouvách chybí GDPR doložka?<span class="typing-cursor"></span></div>
+          </div>
+          <div class="search-results" id="search-results-demo">
+            <div class="result-item">
+              <div class="result-item-top">
+                <div class="result-item-name">Smlouva o dílo — Novák s.r.o.</div>
+                <div class="score-badge">94 %</div>
+              </div>
+              <div class="result-meta">SoD · IČO 12345678 · Podepsána 3. 3. 2024</div>
+              <div class="result-snippet">…odpovědnost za škodu vzniklou třetí straně není <em>ošetřena GDPR doložkou</em> ani zpracovatelskou smlouvou…</div>
+            </div>
+            <div class="result-item">
+              <div class="result-item-top">
+                <div class="result-item-name">Rámcová smlouva — ABC Technologies</div>
+                <div class="score-badge">87 %</div>
+              </div>
+              <div class="result-meta">Rámcová · IČO 87654321 · Platnost do 31. 12. 2025</div>
+              <div class="result-snippet">…ustanovení o <em>zpracování osobních údajů</em> a GDPR zcela absentuje v čl. 7–9…</div>
+            </div>
+            <div class="result-item">
+              <div class="result-item-top">
+                <div class="result-item-name">SLA — CloudHost CZ s.r.o.</div>
+                <div class="score-badge">79 %</div>
+              </div>
+              <div class="result-meta">SLA · IČO 55544433 · Platnost do 15. 6. 2026</div>
+              <div class="result-snippet">…smlouva neobsahuje <em>doložku o ochraně osobních dat</em> dle nařízení EU 2016/679…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Stats ─────────────────────────────────────────────────────────────────── -->
+<div id="stats">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-item fade-up">
+        <div class="stat-num">10×</div>
+        <div class="stat-label">rychlejší nalezení klauzule</div>
+      </div>
+      <div class="stat-item fade-up">
+        <div class="stat-num">98%</div>
+        <div class="stat-label">přesnost extrakce textu z PDF</div>
+      </div>
+      <div class="stat-item fade-up">
+        <div class="stat-num">3 min</div>
+        <div class="stat-label">zpracování nového dokumentu</div>
+      </div>
+      <div class="stat-item fade-up">
+        <div class="stat-num">4×</div>
+        <div class="stat-label">levnější než zahraniční alternativy</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Features ──────────────────────────────────────────────────────────────── -->
+<section id="features">
+  <div class="container">
+    <div class="section-header fade-up">
+      <div class="tag">Funkce</div>
+      <h2>Vše, co právní oddělení potřebuje</h2>
+      <p>Od nahrání naskenovaného PDF po sémantické vyhledávání napříč stovkami smluv.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card fade-up">
+        <div class="feat-icon">📄</div>
+        <h3>Inteligentní OCR a extrakce</h3>
+        <p>Zpracuje digitální i naskenovaná PDF, Word dokumenty. Extrahuje strany, IČO, termíny, sankce a GDPR doložky automaticky.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feat-icon">🔍</div>
+        <h3>Hybridní vyhledávání</h3>
+        <p>Kombinuje sémantické porozumění (embeddingy) s fulltextovým vyhledáváním. Najde relevantní klauzuli i jinak formulovanou.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feat-icon">🧩</div>
+        <h3>Výklad klauzulí</h3>
+        <p>Ptejte se přirozenou češtinou. Asistent cituje přesné znění, lokalizuje číslo článku a přeloží právní jazyk do srozumitelného souhrnu.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feat-icon">🔗</div>
+        <h3>SharePoint & email integrace</h3>
+        <p>Automaticky stahuje nové smlouvy z firemního SharePointu, emailu nebo FTP. Žádné ruční nahrávání.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feat-icon">⚠️</div>
+        <h3>Alerting na termíny</h3>
+        <p>Upozornění 30/60/90 dní před vypršením smluv. Notifikace do Teams, Outlooku nebo emailem.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feat-icon">🛡️</div>
+        <h3>Data ve vašem Azure</h3>
+        <p>Dokumenty a databáze zůstávají ve vaší Azure SQL. Žádný třetí server, plná kontrola nad daty, GDPR compliance.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── How it works ───────────────────────────────────────────────────────────── -->
+<section id="how">
+  <div class="container">
+    <div class="section-header fade-up">
+      <div class="tag">Postup</div>
+      <h2>Od nahrání po odpověď za minuty</h2>
+    </div>
+    <div class="steps">
+      <div class="step fade-up">
+        <div class="step-num">1</div>
+        <h3>Nahrání dokumentu</h3>
+        <p>Přetáhněte PDF nebo Word soubor, nebo propojte SharePoint. Podporujeme i naskenované smlouvy.</p>
+      </div>
+      <div class="step fade-up">
+        <div class="step-num">2</div>
+        <h3>Automatická analýza</h3>
+        <p>OCR extrahuje text, AI identifikuje typ smlouvy, strany, termíny a klíčové klauzule.</p>
+      </div>
+      <div class="step fade-up">
+        <div class="step-num">3</div>
+        <h3>Vektorový index</h3>
+        <p>Dokument je převeden na sémantický embedding a uložen do vaší Azure databáze.</p>
+      </div>
+      <div class="step fade-up">
+        <div class="step-num">4</div>
+        <h3>Ptejte se</h3>
+        <p>Zadejte dotaz v češtině. Dostanete přesnou citaci s odkazem na zdroj, ne jen seznam souborů.</p>
+      </div>
+    </div>
+
+    <div style="margin-top: 64px; fade-up">
+      <div class="section-header fade-up" style="margin-bottom: 28px;">
+        <div class="tag">Ukázky dotazů</div>
+        <h2>Co se asistenta ptát</h2>
+      </div>
+      <div class="query-examples">
+        <div class="query-ex fade-up">
+          <div class="q-text">"Jaká je výpovědní lhůta ve smlouvě s ABC s.r.o. a lze ji zkrátit dohodou?"</div>
+          <div class="q-type">Výklad klauzule</div>
+        </div>
+        <div class="query-ex fade-up">
+          <div class="q-text">"Ve kterých IT smlouvách chybí GDPR doložka nebo zpracovatelská smlouva?"</div>
+          <div class="q-type">Průřezové hledání</div>
+        </div>
+        <div class="query-ex fade-up">
+          <div class="q-text">"Kde máme smluvní pokutu vyšší než 5 % z hodnoty plnění ročně?"</div>
+          <div class="q-type">Finanční rizika</div>
+        </div>
+        <div class="query-ex fade-up">
+          <div class="q-text">"Cituj přesně článek o omezení odpovědnosti ze smlouvy č. 2023-047."</div>
+          <div class="q-type">Přesné znění</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Pricing ────────────────────────────────────────────────────────────────── -->
+<section id="pricing">
+  <div class="container">
+    <div class="section-header fade-up">
+      <div class="tag">Ceník</div>
+      <h2>Transparentní ceny bez překvapení</h2>
+      <p>Roční fakturace. Měsíční fakturace dostupná s příplatkem 15 %. Všechny ceny jsou bez DPH.</p>
+    </div>
+    <div class="pricing-grid">
+
+      <!-- Starter -->
+      <div class="pricing-card fade-up">
+        <div class="plan-name">Starter</div>
+        <div class="plan-price">
+          <span class="currency">Kč</span>
+          <span class="amount">1 990</span>
+          <span class="period">/ měsíc</span>
+        </div>
+        <div class="plan-desc">Pro menší firmy a živnostníky se základní smluvní agendou.</div>
+        <ul class="plan-features">
+          <li>1 uživatel</li>
+          <li>50 dokumentů / měsíc</li>
+          <li>PDF, DOCX, OCR podpora</li>
+          <li>Hybridní vyhledávání</li>
+          <li>Extrakce metadat</li>
+          <li>Azure SQL — vaše data</li>
+          <li class="no">SharePoint integrace</li>
+          <li class="no">LLM výklad klauzulí</li>
+          <li class="no">Alerting na termíny</li>
+          <li class="no">Priority podpora</li>
+        </ul>
+        <a href="#cta" class="btn-plan">Začít zdarma</a>
+      </div>
+
+      <!-- Business (featured) -->
+      <div class="pricing-card featured fade-up">
+        <div class="popular-badge">Nejoblíbenější</div>
+        <div class="plan-name">Business</div>
+        <div class="plan-price">
+          <span class="currency">Kč</span>
+          <span class="amount">4 990</span>
+          <span class="period">/ měsíc</span>
+        </div>
+        <div class="plan-desc">Kompletní řešení pro právní oddělení malé a střední firmy.</div>
+        <ul class="plan-features">
+          <li>5 uživatelů</li>
+          <li>500 dokumentů / měsíc</li>
+          <li>PDF, DOCX, OCR podpora</li>
+          <li>Hybridní vyhledávání</li>
+          <li>Extrakce metadat</li>
+          <li>Azure SQL — vaše data</li>
+          <li>SharePoint integrace</li>
+          <li>LLM výklad klauzulí (Claude AI)</li>
+          <li>Alerting na termíny (Teams)</li>
+          <li>Email podpora do 24 h</li>
+        </ul>
+        <a href="#cta" class="btn-plan featured">Začít zdarma</a>
+      </div>
+
+      <!-- Enterprise -->
+      <div class="pricing-card fade-up">
+        <div class="plan-name">Enterprise</div>
+        <div class="plan-price">
+          <span class="currency">Kč</span>
+          <span class="amount">9 990</span>
+          <span class="period">/ měsíc</span>
+        </div>
+        <div class="plan-desc">Pro větší právní týmy s vysokým objemem dokumentace a SLA garancemi.</div>
+        <ul class="plan-features">
+          <li>Neomezení uživatelé</li>
+          <li>Neomezené dokumenty</li>
+          <li>PDF, DOCX, OCR podpora</li>
+          <li>Hybridní vyhledávání</li>
+          <li>Extrakce metadat</li>
+          <li>Azure SQL — vaše data</li>
+          <li>SharePoint + email + FTP</li>
+          <li>LLM výklad klauzulí (Claude AI)</li>
+          <li>Alerting (Teams, Outlook, email)</li>
+          <li>Priority podpora + SLA 99,5 %</li>
+        </ul>
+        <a href="#cta" class="btn-plan">Kontaktujte nás</a>
+      </div>
+
+    </div>
+    <p class="pricing-note">Potřebujete nadstandardní objem nebo white-label řešení? <a href="#cta">Napište nám →</a></p>
+  </div>
+</section>
+
+<!-- ── Competitor comparison ──────────────────────────────────────────────────── -->
+<section id="compare">
+  <div class="container">
+    <div class="section-header fade-up">
+      <div class="tag">Porovnání</div>
+      <h2>Proč LexAI místo zahraničního SaaS</h2>
+    </div>
+    <div style="overflow-x:auto; fade-up" class="fade-up">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Kritérium</th>
+            <th class="ours">LexAI</th>
+            <th>Harvey.ai</th>
+            <th>Gavel</th>
+            <th>StrongSuit</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Cena / měsíc</td>
+            <td class="ours price-tag gold">od 1 990 Kč</td>
+            <td>enterprise / na dotaz</td>
+            <td class="price-tag">~4 000 Kč / uživatel</td>
+            <td class="price-tag">~6 000 Kč</td>
+          </tr>
+          <tr>
+            <td>Čeština nativně</td>
+            <td class="ours"><span class="check">✓</span> plná podpora</td>
+            <td><span class="cross">–</span> angličtina</td>
+            <td><span class="cross">–</span> angličtina</td>
+            <td><span class="cross">–</span> angličtina</td>
+          </tr>
+          <tr>
+            <td>Data ve vašem cloudu</td>
+            <td class="ours"><span class="check">✓</span> váš Azure SQL</td>
+            <td><span class="cross">–</span> servery Harvey</td>
+            <td><span class="cross">–</span> servery Gavel</td>
+            <td><span class="cross">–</span> US cloud</td>
+          </tr>
+          <tr>
+            <td>OCR naskenovaných PDF</td>
+            <td class="ours"><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+            <td><span class="cross">–</span></td>
+            <td><span class="check">✓</span></td>
+          </tr>
+          <tr>
+            <td>SharePoint integrace</td>
+            <td class="ours"><span class="check">✓</span> Business+</td>
+            <td><span class="check">✓</span></td>
+            <td><span class="cross">–</span></td>
+            <td><span class="cross">–</span></td>
+          </tr>
+          <tr>
+            <td>GDPR compliance (CZ)</td>
+            <td class="ours"><span class="check">✓</span> data v ČR</td>
+            <td><span class="cross">–</span> USA</td>
+            <td><span class="cross">–</span> USA</td>
+            <td><span class="cross">–</span> USA</td>
+          </tr>
+          <tr>
+            <td>Vlastní Azure databáze</td>
+            <td class="ours"><span class="check">✓</span></td>
+            <td><span class="cross">–</span></td>
+            <td><span class="cross">–</span></td>
+            <td><span class="cross">–</span></td>
+          </tr>
+          <tr>
+            <td>Onboarding</td>
+            <td class="ours">do 1 hodiny</td>
+            <td>enterprise projekt</td>
+            <td>týdny</td>
+            <td>3 minuty</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ── Cost transparency ──────────────────────────────────────────────────────── -->
+<section id="costs">
+  <div class="container">
+    <div class="section-header fade-up">
+      <div class="tag">Transparentnost</div>
+      <h2>Jak je cena sestavena</h2>
+      <p>Žádné skryté poplatky. Zde vidíte, co platí za typického Business zákazníka a jakou část tvoří zisk.</p>
+    </div>
+    <div class="cost-grid">
+      <div class="cost-card fade-up">
+        <h3>Náklady na zákazníka / měsíc (Business plán)</h3>
+        <div class="cost-row">
+          <span class="label">Azure SQL Database (Standard S1)</span>
+          <span class="value">~520 Kč</span>
+        </div>
+        <div class="cost-row">
+          <span class="label">Azure App Service (B2)</span>
+          <span class="value">~380 Kč</span>
+        </div>
+        <div class="cost-row">
+          <span class="label">Azure Blob Storage (dokumenty)</span>
+          <span class="value">~80 Kč</span>
+        </div>
+        <div class="cost-row">
+          <span class="label">Claude API (Anthropic Sonnet)</span>
+          <span class="value">~600 Kč</span>
+        </div>
+        <div class="cost-row">
+          <span class="label">Podpora + monitoring + aktualizace</span>
+          <span class="value">~400 Kč</span>
+        </div>
+        <div class="cost-row total">
+          <span class="label">Celkové náklady</span>
+          <span class="value">~1 980 Kč</span>
+        </div>
+        <div class="margin-badge">Hrubá marže Business plánu: ~60 %</div>
+      </div>
+      <div class="cost-card fade-up">
+        <h3>Projekce zisku při 30 zákaznících</h3>
+        <div class="cost-row">
+          <span class="label">10× Starter (1 990 Kč)</span>
+          <span class="value">19 900 Kč</span>
+        </div>
+        <div class="cost-row">
+          <span class="label">15× Business (4 990 Kč)</span>
+          <span class="value">74 850 Kč</span>
+        </div>
+        <div class="cost-row">
+          <span class="label">5× Enterprise (9 990 Kč)</span>
+          <span class="value">49 950 Kč</span>
+        </div>
+        <div class="cost-row">
+          <span class="label">Celkový příjem / měsíc</span>
+          <span class="value">144 700 Kč</span>
+        </div>
+        <div class="cost-row">
+          <span class="label">Odhadované celkové náklady</span>
+          <span class="value">~58 000 Kč</span>
+        </div>
+        <div class="cost-row total">
+          <span class="label">Čistý zisk / měsíc</span>
+          <span class="value">~86 700 Kč</span>
+        </div>
+        <div class="margin-badge">Roční zisk při 30 zákaznících: ~1 040 000 Kč</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Roadmap ────────────────────────────────────────────────────────────────── -->
+<section id="roadmap" style="background: rgba(255,255,255,.015);">
+  <div class="container">
+    <div class="section-header fade-up">
+      <div class="tag">Roadmap</div>
+      <h2>Co přichází dál</h2>
+    </div>
+    <div class="roadmap-grid">
+      <div class="roadmap-card fade-up">
+        <div class="roadmap-phase">Fáze 1 — nyní dostupné</div>
+        <div class="roadmap-timeline">✅ Aktuální verze</div>
+        <ul class="roadmap-items">
+          <li>Nahrání PDF a DOCX, OCR</li>
+          <li>Extrakce metadat (15 polí)</li>
+          <li>Hybridní vyhledávání</li>
+          <li>Azure SQL databáze</li>
+          <li>Webové rozhraní</li>
+        </ul>
+      </div>
+      <div class="roadmap-card fade-up">
+        <div class="roadmap-phase">Fáze 2 — Q3 2025</div>
+        <div class="roadmap-timeline">🔧 Ve vývoji</div>
+        <ul class="roadmap-items">
+          <li>SharePoint a email konektor</li>
+          <li>LLM výklad klauzulí (Claude)</li>
+          <li>Alerting na termíny (Teams)</li>
+          <li>Compliance checker (GDPR, NIS2)</li>
+          <li>Srovnání smluv s šablonou</li>
+        </ul>
+      </div>
+      <div class="roadmap-card fade-up">
+        <div class="roadmap-phase">Fáze 3 — Q4 2025</div>
+        <div class="roadmap-timeline">📋 Plánováno</div>
+        <ul class="roadmap-items">
+          <li>Manažerský dashboard</li>
+          <li>Export PDF/Excel reportů</li>
+          <li>Azure AD / SSO přihlášení</li>
+          <li>API pro ERP integrace</li>
+          <li>White-label varianta</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FAQ ────────────────────────────────────────────────────────────────────── -->
+<section id="faq">
+  <div class="container">
+    <div class="section-header fade-up">
+      <div class="tag">Časté dotazy</div>
+      <h2>Máte otázky?</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item fade-up">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Kde jsou uložena moje data? <span>+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Dokumenty a databáze jsou uloženy výhradně ve vaší vlastní Azure SQL databázi, ve vašem Azure tenantu. LexAI nemá přístup k vašim datům — pouze k aplikační logice. Data nikdy neopustí vaši infrastrukturu.</p>
+        </div>
+      </div>
+      <div class="faq-item fade-up">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Funguje to i pro naskenované smlouvy z 90. let? <span>+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Ano. Pro naskenované dokumenty používáme Tesseract OCR s podporou češtiny a angličtiny. Doporučujeme skenování při rozlišení alespoň 300 DPI pro nejlepší výsledky. Digitální PDF a Word soubory jsou zpracovány s 98%+ přesností.</p>
+        </div>
+      </div>
+      <div class="faq-item fade-up">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Mohu LexAI napojit na náš firemní SharePoint? <span>+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Ano, v Business a Enterprise plánu. Napojení funguje přes Microsoft Graph API — LexAI sleduje vybrané knihovny dokumentů a automaticky indexuje nové soubory. Nevyžaduje to žádný ruční zásah právního týmu.</p>
+        </div>
+      </div>
+      <div class="faq-item fade-up">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Je LexAI náhradou za právníka? <span>+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Ne. LexAI je nástroj pro právní tým, ne jeho náhrada. Asistent pomáhá rychle najít relevantní dokumenty, citovat přesné znění a orientovat se v portfoliu smluv. Pro závazný právní výklad vždy doporučujeme konzultaci s advokátem. Každá odpověď asistenta obsahuje přímý odkaz na zdrojový dokument pro ověření.</p>
+        </div>
+      </div>
+      <div class="faq-item fade-up">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Jak probíhá onboarding a jak dlouho trvá spuštění? <span>+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Standardní onboarding trvá do 1 hodiny. Pošleme vám přihlašovací údaje, pomůžeme s napojením na Azure SQL a prvním nahráním dokumentů. Pro Enterprise plán nabízíme asistovaný onboarding se školicí session pro celý právní tým.</p>
+        </div>
+      </div>
+      <div class="faq-item fade-up">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Mohu kdykoli plán změnit nebo zrušit? <span>+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Plán lze upgradovat okamžitě. Downgrade nebo zrušení je možné k poslednímu dni fakturačního období. Při zrušení vám exportujeme veškerá data z databáze ve standardním formátu (SQL dump + ZIP se soubory).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ────────────────────────────────────────────────────────────────────── -->
+<section id="cta">
+  <div class="container">
+    <div class="tag">Začněte dnes</div>
+    <h2>14 dní zdarma.<br><span class="gold">Bez kreditní karty.</span></h2>
+    <p>Nahrajte první smlouvy a přesvědčte se sami. Celý tým do 1 hodiny, vaše data ve vašem Azure.</p>
+    <div class="cta-actions">
+      <a href="/trial" class="btn-primary" style="font-size: 16px; padding: 16px 36px;">Spustit zkušební verzi</a>
+      <a href="mailto:hello@lexai.cz" class="btn-outline" style="font-size: 16px; padding: 16px 36px;">Smluvní demo →</a>
+    </div>
+    <p style="margin-top: 24px; font-size: 13px; color: #4a5568;">Nebo nás kontaktujte na <a href="mailto:hello@lexai.cz" style="color: var(--gold); text-decoration: none;">hello@lexai.cz</a></p>
+  </div>
+</section>
+
+<!-- ── Footer ─────────────────────────────────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-logo">Lex<span>AI</span></div>
+      <div class="footer-links">
+        <a href="#">Ochrana dat</a>
+        <a href="#">Podmínky</a>
+        <a href="#">Dokumentace API</a>
+        <a href="mailto:hello@lexai.cz">Kontakt</a>
+      </div>
+      <div class="footer-copy">© 2025 LexAI. Vyrobeno v Česku.</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// FAQ toggle
+function toggleFaq(btn) {
+  const item = btn.parentElement;
+  item.classList.toggle('open');
+}
+
+// Intersection observer for animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('visible'); }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+// Typing animation in hero
+const queries = [
+  "Ve kterých smlouvách chybí GDPR doložka?",
+  "Jaká je výpovědní lhůta v SLA s CloudHost CZ?",
+  "Kde máme smluvní pokutu nad 100 000 Kč?",
+  "Cituj článek o omezení odpovědnosti — ABC s.r.o.",
+];
+let qi = 0, ci = 0, deleting = false;
+const el = document.getElementById('typed-query');
+
+function typeLoop() {
+  const q = queries[qi];
+  if (!deleting) {
+    ci++;
+    el.innerHTML = q.slice(0, ci) + '<span class="typing-cursor"></span>';
+    if (ci === q.length) { deleting = true; setTimeout(typeLoop, 2200); return; }
+  } else {
+    ci--;
+    el.innerHTML = q.slice(0, ci) + '<span class="typing-cursor"></span>';
+    if (ci === 0) { deleting = false; qi = (qi + 1) % queries.length; setTimeout(typeLoop, 300); return; }
+  }
+  setTimeout(typeLoop, deleting ? 28 : 52);
+}
+setTimeout(typeLoop, 1500);
+</script>
+</body>
+</html>

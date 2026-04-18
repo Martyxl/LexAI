@@ -1,0 +1,13 @@
+{
+  "name": "lexai-vercel",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "LexAI – AI právní asistent, trial verze na Vercel",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@vercel/kv": "^3.0.0"
+  }
+}
