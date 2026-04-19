@@ -1,19 +1,29 @@
-import { getIP, checkRateLimit } from './_security.js';
+function getIP(req) {
+  return (req.headers['x-real-ip'] || (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown');
+}
+
+async function rateLimit(kv, key, window, max) {
+  if (!kv) return true;
+  try {
+    const c = await kv.incr(key);
+    if (c === 1) await kv.expire(key, window);
+    return c <= max;
+  } catch { return true; }
+}
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
 
-  // KV uvnitř handleru
   let kv = null;
-  try { const m = await import('@vercel/kv'); kv = m.kv; } catch (_) {}
+  try { kv = (await import('@vercel/kv')).kv; } catch (_) {}
 
-  const ip      = getIP(req);
-  const allowed = await checkRateLimit(kv, `contact:${ip}`, { window: 3600, max: 5 });
-  if (!allowed) return res.status(429).json({ error: 'Příliš mnoho registrací z této adresy.' });
+  const ip = getIP(req);
+  if (!await rateLimit(kv, `contact:${ip}`, 3600, 5)) {
+    return res.status(429).json({ error: 'Příliš mnoho požadavků.' });
+  }
 
   const { sessionId, name, email, company, volume } = req.body || {};
-
   if (!email?.includes('@') || email.length > 200) {
     return res.status(400).json({ error: 'Neplatný email.' });
   }
@@ -32,12 +42,9 @@ export default async function handler(req, res) {
     try {
       await kv.lpush('contacts', JSON.stringify(contact));
       await kv.set(`contact:${contact.email}`, JSON.stringify(contact), { ex: 86400 * 365 });
-      const session = await kv.get(`s:${contact.id}`) ?? { c: 0, u: false };
-      session.u = true;
-      await kv.set(`s:${contact.id}`, session, { ex: 86400 * 7 });
-    } catch (e) {
-      console.error('[contact] KV error:', e.constructor?.name);
-    }
+      const sess = (await kv.get(`s:${contact.id}`)) ?? { c: 0, u: false };
+      await kv.set(`s:${contact.id}`, { ...sess, u: true }, { ex: 86400 * 7 });
+    } catch (e) { console.error('[contact] KV:', e?.constructor?.name); }
   }
 
   return res.json({ success: true });

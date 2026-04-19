@@ -625,18 +625,23 @@ function scrollDown() {
   setTimeout(() => messagesEl.scrollTop = messagesEl.scrollHeight, 50);
 }
 
-function formatAI(text) {
+function formatAI(rawText) {
+  // Escape HTML first to prevent injection
+  let text = rawText
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
   // Bold **text**
   text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  // Italic *text* → gold highlight
-  text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
-  // Warning line ⚠️
-  text = text.replace(/(⚠️[^\n]+)/g, '<div class="warning">$1</div>');
-  // Quoted text in „…" or "…"
+  // Italic *text*
+  text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  // Quoted text
   text = text.replace(/[„"](.*?)[""]/g, '<blockquote>„$1"</blockquote>');
   // Bullet points
   text = text.replace(/^[•\-]\s(.+)$/gm, '<li>$1</li>');
-  text = text.replace(/(<li>.*<\/li>)/gs, m => `<ul>${m}</ul>`);
+  text = text.replace(/(<li>.*?<\/li>)/gs, m => `<ul>${m}</ul>`);
+  // Warning line ⚠️ — must come after escaping
+  text = text.replace(/(⚠️[^\n<]+)/g, '<span class="warn-line">$1</span>');
   // Line breaks
   text = text.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
   return text;
