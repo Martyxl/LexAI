@@ -9,29 +9,18 @@ module.exports = async function handler(req, res) {
 
   // Test KV
   try {
-    const { kv } = require('@vercel/kv');
+    const { kv } = await import('@vercel/kv');
     await kv.set('health_ping', '1', { ex: 10 });
     result.kv = 'ok';
   } catch (e) {
-    result.kv = 'error: ' + (e?.message || e?.constructor?.name);
+    result.kv = 'error: ' + (e?.message?.slice(0, 100) || String(e));
   }
 
-  // Test Anthropic SDK import + instantiation
+  // Test Anthropic — dynamic import (ESM-only package)
   if (process.env.ANTHROPIC_API_KEY) {
     try {
-      const Anthropic = require('@anthropic-ai/sdk');
-      // Log what we actually get from require
-      result.sdk_type = typeof Anthropic;
-      result.sdk_keys = Object.keys(Anthropic).slice(0, 10).join(', ');
-
-      // Try to find the right constructor
-      const Client = Anthropic.default || Anthropic.Anthropic || Anthropic;
-      result.client_type = typeof Client;
-
-      const client = new Client({ apiKey: process.env.ANTHROPIC_API_KEY });
-      result.client_created = 'ok';
-
-      // Actually call the API with minimal request
+      const { default: Anthropic } = await import('@anthropic-ai/sdk');
+      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
       const response = await client.messages.create({
         model: 'claude-haiku-4-5',
         max_tokens: 10,
@@ -39,7 +28,7 @@ module.exports = async function handler(req, res) {
       });
       result.anthropic_test = 'ok: ' + (response.content[0]?.text || '?');
     } catch (e) {
-      result.anthropic_test = 'error: ' + (e?.message || e?.constructor?.name || String(e));
+      result.anthropic_test = 'error: ' + (e?.message?.slice(0, 150) || String(e));
       result.anthropic_status = e?.status;
     }
   }

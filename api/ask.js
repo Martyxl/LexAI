@@ -1,5 +1,3 @@
-const Anthropic = require('@anthropic-ai/sdk');
-
 const FREE_LIMIT   = 2;
 const UNLOCK_LIMIT = 12;
 
@@ -37,7 +35,7 @@ const INJECTION_RE = [
 ];
 function isInjection(t) { return INJECTION_RE.some(re => re.test(t)); }
 
-async function rateLimit(kv, key, windowSec, max) {
+async function getRateLimit(kv, key, windowSec, max) {
   if (!kv) return true;
   try {
     const c = await kv.incr(key);
@@ -50,11 +48,21 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
 
+  // KV — dynamic import (ESM package)
   let kv = null;
-  try { kv = require('@vercel/kv').kv; } catch (_) {}
+  try { kv = (await import('@vercel/kv')).kv; } catch (_) {}
+
+  // Anthropic — dynamic import (ESM-only package)
+  let Anthropic;
+  try {
+    Anthropic = (await import('@anthropic-ai/sdk')).default;
+  } catch (e) {
+    console.error('[ask] Failed to import Anthropic SDK:', e?.message);
+    return res.status(500).json({ error: 'Nelze načíst AI modul: ' + e?.message });
+  }
 
   const ip = getIP(req);
-  if (!await rateLimit(kv, `rl:${ip}`, 60, 20)) {
+  if (!await getRateLimit(kv, `rl:${ip}`, 60, 20)) {
     return res.status(429).json({ error: 'Příliš mnoho požadavků. Zkuste to za chvíli.' });
   }
 
@@ -110,7 +118,7 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // Claude API — Anthropic importován přes require(), volá se přímo bez .default
+  // Claude API
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -137,11 +145,10 @@ module.exports = async function handler(req, res) {
     });
 
   } catch (e) {
-    console.error('[ask] error:', e?.status, e?.message?.slice(0, 300));
+    console.error('[ask] Anthropic error:', e?.status, e?.message?.slice(0, 200));
     const msg = e?.status === 401 ? 'Neplatný API klíč.'
               : e?.status === 429 ? 'API je přetíženo, zkuste za chvíli.'
-              : e?.status === 400 ? 'Chybný požadavek: ' + (e?.message?.slice(0, 100) || '')
-              : 'Chyba při zpracování: ' + (e?.message?.slice(0, 100) || 'neznámá');
+              : 'Chyba: ' + (e?.message?.slice(0, 100) || 'neznámá');
     return res.status(500).json({ error: msg });
   }
 };
