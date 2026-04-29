@@ -45,7 +45,7 @@ async function callClaude(apiKey, system, messages) {
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
+      model: 'claude-3-5-sonnet-20241022',
       max_tokens: 1024,
       system,
       messages,
@@ -64,11 +64,9 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
 
-  // KV — bez top-level await
   let kv = null;
   try { kv = (await import('@vercel/kv')).kv; } catch (_) {}
 
-  // Rate limit
   const ip = getIP(req);
   if (kv) {
     try {
@@ -80,22 +78,19 @@ export default async function handler(req, res) {
 
   const { sessionId, pdfText, question, history = [], clientCount = 0, clientUnlocked = false } = req.body || {};
 
-  if (!sessionId || typeof sessionId !== 'string' || sessionId.length > 64) {
+  if (!sessionId || typeof sessionId !== 'string' || sessionId.length > 64)
     return res.status(400).json({ error: 'Neplatná relace.' });
-  }
 
   const cleanQ    = sanitize(question, 800);
   const cleanText = sanitize(pdfText, 16000);
 
-  if (!cleanQ)           return res.status(400).json({ error: 'Dotaz nesmí být prázdný.' });
-  if (!cleanText)        return res.status(400).json({ error: 'Dokument nebyl nahrán.' });
+  if (!cleanQ)             return res.status(400).json({ error: 'Dotaz nesmí být prázdný.' });
+  if (!cleanText)          return res.status(400).json({ error: 'Dokument nebyl nahrán.' });
   if (isInjection(cleanQ)) return res.status(400).json({ error: 'Neplatný dotaz.' });
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!process.env.ANTHROPIC_API_KEY)
     return res.status(503).json({ error: 'Chybí ANTHROPIC_API_KEY.' });
-  }
 
-  // Session tracking
   let qCount = clientCount, unlocked = clientUnlocked;
 
   if (kv) {
@@ -122,7 +117,6 @@ export default async function handler(req, res) {
       return res.json({ requireContact: true, questionsUsed: clientCount });
   }
 
-  // Volání Claude přes fetch — žádný SDK
   try {
     const safeHistory = (Array.isArray(history) ? history : [])
       .slice(-6)
@@ -146,6 +140,7 @@ export default async function handler(req, res) {
     console.error('[ask]', e?.status, e?.message?.slice(0, 200));
     const msg = e?.status === 401 ? 'Neplatný API klíč.'
               : e?.status === 429 ? 'API přetíženo, zkuste za chvíli.'
+              : e?.status === 400 ? 'Chyba API: ' + (e?.message?.slice(0, 150) || '')
               : 'Chyba: ' + (e?.message?.slice(0, 100) || 'neznámá');
     return res.status(500).json({ error: msg });
   }

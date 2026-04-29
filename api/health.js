@@ -17,15 +17,16 @@ export default async function handler(req, res) {
           'content-type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5',
+          model: 'claude-3-haiku-20240307',
           max_tokens: 10,
           messages: [{ role: 'user', content: 'Say OK' }],
         }),
       });
       const data = await r.json();
+      result.http_status = r.status;
       result.anthropic_test = r.ok
         ? 'ok: ' + (data.content?.[0]?.text || '?')
-        : 'error ' + r.status + ': ' + (data.error?.message || JSON.stringify(data));
+        : 'error ' + r.status + ': ' + JSON.stringify(data.error || data);
     } catch (e) {
       result.anthropic_test = 'fetch error: ' + e.message;
     }
