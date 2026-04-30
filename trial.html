@@ -9,7 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root {
-  --navy:  #0d1b2a; --navy2: #152435; --navy3: #1e3248; --navy4: #243d56;
+  --navy:  #0e1f14; --navy2: #132b1a; --navy3: #1a3823; --navy4: #20442a;
   --gold:  #c9a84c; --gold2: #e8c96a; --gold3: #f5e0a0;
   --white: #ffffff;  --cream: #f8f4ed;
   --muted: #8a96a3;  --border: rgba(201,168,76,.18);
@@ -230,7 +230,7 @@ main { flex: 1; overflow: hidden; position: relative; }
 /* ── Contact modal ──────────────────────────────────────────────────────── */
 #contact-modal {
   position: absolute; inset: 0;
-  background: rgba(13,27,42,.92); backdrop-filter: blur(6px);
+  background: rgba(14,31,20,.92); backdrop-filter: blur(6px);
   display: none; align-items: center; justify-content: center;
   padding: 20px; z-index: 50; animation: fadeIn .3s;
 }
@@ -722,7 +722,14 @@ async function sendQuestion(question) {
     }
   } catch (e) {
     removeTypingIndicator();
-    addAIMessage('⚠️ Nepodařilo se připojit k serveru. Zkontrolujte připojení a zkuste znovu.');
+    let errMsg = 'Nepodařilo se připojit k serveru.';
+    if (e instanceof SyntaxError) {
+      errMsg = 'Server vrátil neplatnou odpověď (pravděpodobně chybí API klíč v nastavení Vercel).';
+    } else if (e?.message?.includes('fetch')) {
+      errMsg = 'Síťová chyba — zkontrolujte připojení.';
+    }
+    addAIMessage('⚠️ ' + errMsg + ' [Zkuste znovu nebo zkontrolujte /api/health]');
+    console.error('[ask] fetch error:', e);
   } finally {
     isLoading = false;
     sendBtn.disabled = false;
